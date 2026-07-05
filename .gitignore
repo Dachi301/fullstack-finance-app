@@ -1,0 +1,18 @@
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# Environment files
+**/.env
+**/.env.*
+!**/.env.example
+
+# Local databases
+backend/ledgerly.sqlite*
