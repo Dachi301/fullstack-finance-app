@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { NotFoundException } from '@nestjs/common';
 import { Transaction, TransactionType } from './entities/transaction.entity';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
@@ -10,12 +11,14 @@ describe('TransactionsService', () => {
     find: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
+    delete: jest.fn(),
   };
 
   beforeEach(async () => {
     repository.find.mockReset();
     repository.create.mockReset();
     repository.save.mockReset();
+    repository.delete.mockReset();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -66,5 +69,32 @@ describe('TransactionsService', () => {
     expect(repository.create).toHaveBeenCalledWith(dto);
     expect(repository.save).toHaveBeenCalledWith(transaction);
     expect(result).toEqual(transaction);
+  });
+
+  it('should delete a transaction', async () => {
+    const id = '02c106ad-974d-48f8-99b0-f4585ae47ae1';
+  
+    repository.delete.mockResolvedValue({
+      affected: 1,
+    });
+  
+    await service.remove(id);
+  
+    expect(repository.delete).toHaveBeenCalledWith(id);
+    expect(repository.delete).toHaveBeenCalledTimes(1);
+  });
+  
+  it('should throw when deleting an unknown transaction', async () => {
+    const id = '02c106ad-974d-48f8-99b0-f4585ae47ae1';
+  
+    repository.delete.mockResolvedValue({
+      affected: 0,
+    });
+  
+    await expect(service.remove(id)).rejects.toThrow(
+      NotFoundException,
+    );
+  
+    expect(repository.delete).toHaveBeenCalledWith(id);
   });
 });

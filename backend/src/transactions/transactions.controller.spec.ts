@@ -10,11 +10,13 @@ describe('TransactionsController', () => {
   const transactionsService = {
     findAll: jest.fn(),
     create: jest.fn(),
+    remove: jest.fn(),
   };
 
   beforeEach(async () => {
     transactionsService.findAll.mockReset();
     transactionsService.create.mockReset();
+    transactionsService.remove.mockReset();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TransactionsController],
@@ -63,5 +65,16 @@ describe('TransactionsController', () => {
   
     expect(transactionsService.create).toHaveBeenCalledWith(dto);
     expect(result).toEqual(transaction);
+  });
+
+  it('should delete a transaction', async () => {
+    const id = '02c106ad-974d-48f8-99b0-f4585ae47ae1';
+
+    transactionsService.remove.mockResolvedValue(undefined);
+
+    await controller.remove(id);
+
+    expect(transactionsService.remove).toHaveBeenCalledWith(id);
+    expect(transactionsService.remove).toHaveBeenCalledTimes(1);
   });
 });

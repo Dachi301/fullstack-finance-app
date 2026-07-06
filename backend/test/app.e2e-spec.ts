@@ -47,6 +47,60 @@ describe('AppController (e2e)', () => {
       });
   });
 
+  it('/transactions/:id (DELETE) deletes a transaction', async () => {
+    const createResponse = await request(app.getHttpServer())
+      .post('/transactions')
+      .send({
+        description: 'Temporary transaction',
+        amountMinor: 2500,
+        type: 'expense',
+        transactionDate: '2026-07-06',
+      })
+      .expect(201);
+  
+    const transactionId = createResponse.body.id as string;
+  
+    await request(app.getHttpServer())
+      .delete(`/transactions/${transactionId}`)
+      .expect(204);
+  
+    const transactionsResponse = await request(
+      app.getHttpServer(),
+    )
+      .get('/transactions')
+      .expect(200);
+  
+    expect(
+      transactionsResponse.body.some(
+        (transaction: { id: string }) =>
+          transaction.id === transactionId,
+      ),
+    ).toBe(false);
+  });
+  
+  it('/transactions/:id (DELETE) returns 404 for unknown transaction', () => {
+    const unknownId =
+      '02c106ad-974d-48f8-99b0-f4585ae47ae1';
+  
+    return request(app.getHttpServer())
+      .delete(`/transactions/${unknownId}`)
+      .expect(404)
+      .expect(({ body }) => {
+        expect(body.statusCode).toBe(404);
+        expect(body.message).toContain('was not found');
+      });
+  });
+  
+  it('/transactions/:id (DELETE) rejects an invalid UUID', () => {
+    return request(app.getHttpServer())
+      .delete('/transactions/not-a-uuid')
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body.statusCode).toBe(400);
+        expect(body.message.toLowerCase()).toContain('uuid');
+      });
+  });
+
   afterEach(async () => {
     await app.close();
   });
