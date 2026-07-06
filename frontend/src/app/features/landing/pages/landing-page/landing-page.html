@@ -1,5 +1,146 @@
-<main>
-    <h1>Ledgerly</h1>
-    <p>Your personal finance assistant</p>
-    <a routerLink="/dashboard">Go to Dashboard</a>
+<main class="landing-shell">
+  <nav class="navigation" aria-label="Main navigation">
+    <a class="brand" routerLink="/" aria-label="Ledgerly home">
+      <span class="brand__mark" aria-hidden="true">L</span>
+      <span>Ledgerly</span>
+    </a>
+
+    <a class="navigation__cta" routerLink="/dashboard">
+      Open dashboard
+      <span aria-hidden="true">→</span>
+    </a>
+  </nav>
+
+  <section class="hero">
+    <div class="hero__content">
+      <p class="eyebrow">
+        <span aria-hidden="true"></span>
+        Personal finance, simplified
+      </p>
+
+      <h1>Know where your money is going.</h1>
+
+      <p class="hero__description">
+        Ledgerly gives you one calm place to record income, track expenses, and
+        understand your everyday financial activity.
+      </p>
+
+      <div class="hero__actions">
+        <a class="button button--primary" routerLink="/dashboard">
+          Start tracking
+          <span aria-hidden="true">→</span>
+        </a>
+
+        <a class="button button--secondary" href="#features">
+          See how it works
+        </a>
+      </div>
+
+      <div class="hero__notes" aria-label="Ledgerly benefits">
+        <span><strong>✓</strong> Simple by design</span>
+        <span><strong>✓</strong> Your data persists</span>
+        <span><strong>✓</strong> Built for clarity</span>
+      </div>
+    </div>
+
+    <div class="preview" aria-label="Ledgerly dashboard preview">
+      <div class="preview__glow" aria-hidden="true"></div>
+
+      <div class="preview-card">
+        <header class="preview-card__header">
+          <div>
+            <p>Current balance</p>
+            <strong>$4,280.45</strong>
+          </div>
+          <span class="preview-card__menu" aria-hidden="true">•••</span>
+        </header>
+
+        <div class="balance-chart" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+
+        <div class="preview-card__summary">
+          <div>
+            <span class="summary-icon summary-icon--income" aria-hidden="true">↙</span>
+            <p>Income</p>
+            <strong>+$2,850.00</strong>
+          </div>
+          <div>
+            <span class="summary-icon summary-icon--expense" aria-hidden="true">↗</span>
+            <p>Expenses</p>
+            <strong>-$1,294.80</strong>
+          </div>
+        </div>
+
+        <div class="preview-card__activity">
+          <div class="activity-heading">
+            <strong>Recent activity</strong>
+            <span>View all</span>
+          </div>
+
+          <div class="activity-row">
+            <span class="activity-row__icon activity-row__icon--shopping" aria-hidden="true">S</span>
+            <div>
+              <strong>Groceries</strong>
+              <span>Today · Expense</span>
+            </div>
+            <strong class="expense">-$45.99</strong>
+          </div>
+
+          <div class="activity-row">
+            <span class="activity-row__icon activity-row__icon--salary" aria-hidden="true">$</span>
+            <div>
+              <strong>Monthly salary</strong>
+              <span>Jul 01 · Income</span>
+            </div>
+            <strong class="income">+$2,850.00</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="features" id="features">
+    <div class="features__heading">
+      <p class="eyebrow">
+        <span aria-hidden="true"></span>
+        Everything you need to begin
+      </p>
+      <h2>A clearer financial habit starts small.</h2>
+    </div>
+
+    <div class="feature-grid">
+      <article class="feature-card">
+        <span class="feature-card__number">01</span>
+        <h3>Record every movement</h3>
+        <p>Add income and expenses with a description, amount, type, and date.</p>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-card__number">02</span>
+        <h3>See activity instantly</h3>
+        <p>Your dashboard updates as soon as a transaction is successfully saved.</p>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-card__number">03</span>
+        <h3>Keep reliable records</h3>
+        <p>Transactions are stored in the backend instead of disappearing on refresh.</p>
+      </article>
+    </div>
+  </section>
+
+  <footer>
+    <a class="brand" routerLink="/" aria-label="Ledgerly home">
+      <span class="brand__mark" aria-hidden="true">L</span>
+      <span>Ledgerly</span>
+    </a>
+    <p>Money, made clearer.</p>
+  </footer>
 </main>

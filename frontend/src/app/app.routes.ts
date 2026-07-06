@@ -6,10 +6,12 @@ export const routes: Routes = [
   {
     path: '',
     component: LandingPage,
+    title: 'Ledgerly | Personal Finance',
   },
   {
     path: 'dashboard',
     component: DashboardPage,
+    title: 'Dashboard | Ledgerly',
   },
   {
     path: '**',
