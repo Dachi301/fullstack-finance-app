@@ -3,25 +3,30 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MaxLength,
   Min,
 } from 'class-validator';
 import { TransactionType } from '../entities/transaction.entity';
 
-export class CreateTransactionDto {
+export class UpdateTransactionDto {
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
   @MaxLength(120)
-  description!: string;
+  description?: string;
 
+  @IsOptional()
   @IsInt()
   @Min(1)
-  amountMinor!: number;
+  amountMinor?: number;
 
+  @IsOptional()
   @IsEnum(TransactionType)
-  type!: TransactionType;
+  type?: TransactionType;
 
+  @IsOptional()
   @IsDateString()
-  transactionDate!: string;
+  transactionDate?: string;
 }

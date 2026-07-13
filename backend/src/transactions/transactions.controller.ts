@@ -7,11 +7,16 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
 } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { Transaction } from './entities/transaction.entity';
-import { TransactionsService } from './transactions.service';
+import {
+  TransactionsService,
+  TransactionsSummary,
+} from './transactions.service';
 
 @Controller('transactions')
 export class TransactionsController {
@@ -27,6 +32,24 @@ export class TransactionsController {
     @Body() createTransactionDto: CreateTransactionDto,
   ): Promise<Transaction> {
     return this.transactionsService.create(createTransactionDto);
+  }
+
+  @Get('summary')
+  getSummary(): Promise<TransactionsSummary> {
+    return this.transactionsService.getSummary();
+  }
+
+  @Get(':id')
+  findOne(@Param('id', ParseUUIDPipe) id: string): Promise<Transaction> {
+    return this.transactionsService.findOne(id);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateTransactionDto: UpdateTransactionDto,
+  ): Promise<Transaction> {
+    return this.transactionsService.update(id, updateTransactionDto);
   }
 
   @Delete(':id')
