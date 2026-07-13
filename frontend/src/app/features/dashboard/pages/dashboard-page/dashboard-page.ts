@@ -5,12 +5,14 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { finalize } from 'rxjs';
+import { finalize, forkJoin } from 'rxjs';
 
 import {
   CreateTransactionRequest,
   Transaction,
+  TransactionsSummary,
   TransactionType,
+  UpdateTransactionRequest,
 } from '../../../transactions/models/transactions';
 import { TransactionsApiService } from '../../../transactions/services/transactions-api.service';
 
@@ -25,23 +27,18 @@ export class DashboardPage implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
 
   readonly transactions = signal<Transaction[]>([]);
+  readonly summary = signal<TransactionsSummary | null>(null);
+
   readonly loading = signal(true);
   readonly submitting = signal(false);
+  readonly deletingTransactionId = signal<string | null>(null);
+  readonly editingTransactionId = signal<string | null>(null);
   readonly errorMessage = signal('');
 
   readonly transactionForm = this.formBuilder.nonNullable.group({
-    description: [
-      '',
-      [Validators.required, Validators.maxLength(120)],
-    ],
-    amount: [
-      0,
-      [Validators.required, Validators.min(0.01)],
-    ],
-    type: [
-      'expense' as TransactionType,
-      Validators.required,
-    ],
+    description: ['', [Validators.required, Validators.maxLength(120)]],
+    amount: [0, [Validators.required, Validators.min(0.01)]],
+    type: ['expense' as TransactionType, Validators.required],
     transactionDate: [
       new Date().toISOString().slice(0, 10),
       Validators.required,
@@ -49,24 +46,25 @@ export class DashboardPage implements OnInit {
   });
 
   ngOnInit(): void {
-    this.loadTransactions();
+    this.loadDashboard();
   }
 
-  loadTransactions(): void {
+  loadDashboard(): void {
     this.loading.set(true);
     this.errorMessage.set('');
 
-    this.transactionsApi
-      .findAll()
+    forkJoin({
+      transactions: this.transactionsApi.findAll(),
+      summary: this.transactionsApi.getSummary(),
+    })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: (transactions) => {
+        next: ({ transactions, summary }) => {
           this.transactions.set(transactions);
+          this.summary.set(summary);
         },
         error: () => {
-          this.errorMessage.set(
-            'Transactions could not be loaded.',
-          );
+          this.errorMessage.set('Dashboard data could not be loaded.');
         },
       });
   }
@@ -77,14 +75,56 @@ export class DashboardPage implements OnInit {
       return;
     }
 
-    const formValue = this.transactionForm.getRawValue();
+    if (this.editingTransactionId()) {
+      this.updateTransaction();
+      return;
+    }
 
-    const request: CreateTransactionRequest = {
-      description: formValue.description.trim(),
-      amountMinor: Math.round(formValue.amount * 100),
-      type: formValue.type,
-      transactionDate: formValue.transactionDate,
-    };
+    this.createTransaction();
+  }
+
+  startEdit(transaction: Transaction): void {
+    this.editingTransactionId.set(transaction.id);
+    this.errorMessage.set('');
+
+    this.transactionForm.setValue({
+      description: transaction.description,
+      amount: transaction.amountMinor / 100,
+      type: transaction.type,
+      transactionDate: transaction.transactionDate,
+    });
+  }
+
+  cancelEdit(): void {
+    this.editingTransactionId.set(null);
+    this.resetForm();
+  }
+
+  deleteTransaction(transactionId: string): void {
+    this.deletingTransactionId.set(transactionId);
+    this.errorMessage.set('');
+
+    this.transactionsApi
+      .remove(transactionId)
+      .pipe(finalize(() => this.deletingTransactionId.set(null)))
+      .subscribe({
+        next: () => {
+          this.transactions.update((transactions) =>
+            transactions.filter(
+              (transaction) => transaction.id !== transactionId,
+            ),
+          );
+
+          this.loadSummary();
+        },
+        error: () => {
+          this.errorMessage.set('Transaction could not be deleted.');
+        },
+      });
+  }
+
+  private createTransaction(): void {
+    const request = this.buildCreateRequest();
 
     this.submitting.set(true);
     this.errorMessage.set('');
@@ -99,20 +139,89 @@ export class DashboardPage implements OnInit {
             ...transactions,
           ]);
 
-          this.transactionForm.reset({
-            description: '',
-            amount: 0,
-            type: 'expense',
-            transactionDate: new Date()
-              .toISOString()
-              .slice(0, 10),
-          });
+          this.resetForm();
+          this.loadSummary();
         },
         error: () => {
-          this.errorMessage.set(
-            'Transaction could not be created.',
-          );
+          this.errorMessage.set('Transaction could not be created.');
         },
       });
+  }
+
+  private updateTransaction(): void {
+    const transactionId = this.editingTransactionId();
+
+    if (!transactionId) {
+      return;
+    }
+
+    const request = this.buildUpdateRequest();
+
+    this.submitting.set(true);
+    this.errorMessage.set('');
+
+    this.transactionsApi
+      .update(transactionId, request)
+      .pipe(finalize(() => this.submitting.set(false)))
+      .subscribe({
+        next: (updatedTransaction) => {
+          this.transactions.update((transactions) =>
+            transactions.map((transaction) =>
+              transaction.id === updatedTransaction.id
+                ? updatedTransaction
+                : transaction,
+            ),
+          );
+
+          this.editingTransactionId.set(null);
+          this.resetForm();
+          this.loadSummary();
+        },
+        error: () => {
+          this.errorMessage.set('Transaction could not be updated.');
+        },
+      });
+  }
+
+  private loadSummary(): void {
+    this.transactionsApi.getSummary().subscribe({
+      next: (summary) => {
+        this.summary.set(summary);
+      },
+      error: () => {
+        this.errorMessage.set('Summary could not be refreshed.');
+      },
+    });
+  }
+
+  private buildCreateRequest(): CreateTransactionRequest {
+    const formValue = this.transactionForm.getRawValue();
+
+    return {
+      description: formValue.description.trim(),
+      amountMinor: Math.round(formValue.amount * 100),
+      type: formValue.type,
+      transactionDate: formValue.transactionDate,
+    };
+  }
+
+  private buildUpdateRequest(): UpdateTransactionRequest {
+    const formValue = this.transactionForm.getRawValue();
+
+    return {
+      description: formValue.description.trim(),
+      amountMinor: Math.round(formValue.amount * 100),
+      type: formValue.type,
+      transactionDate: formValue.transactionDate,
+    };
+  }
+
+  private resetForm(): void {
+    this.transactionForm.reset({
+      description: '',
+      amount: 0,
+      type: 'expense',
+      transactionDate: new Date().toISOString().slice(0, 10),
+    });
   }
 }

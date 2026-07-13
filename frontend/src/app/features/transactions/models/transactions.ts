@@ -16,3 +16,17 @@ export interface CreateTransactionRequest {
   type: TransactionType;
   transactionDate: string;
 }
+
+export interface TransactionsSummary {
+  incomeMinor: number;
+  expenseMinor: number;
+  balanceMinor: number;
+  transactionCount: number;
+}
+
+export interface UpdateTransactionRequest {
+  description?: string;
+  amountMinor?: number;
+  type?: TransactionType;
+  transactionDate?: string;
+}

@@ -16,14 +16,60 @@
       </div>
     </header>
 
+    <section class="summary-grid" aria-label="Transaction summary">
+      <article class="summary-card">
+        <span class="summary-card__label">Balance</span>
+        <strong
+          [class.summary-card__value--positive]="
+            (summary()?.balanceMinor ?? 0) >= 0
+          "
+          [class.summary-card__value--negative]="
+            (summary()?.balanceMinor ?? 0) < 0
+          "
+        >
+          {{ (summary()?.balanceMinor ?? 0) / 100 | currency: "USD" }}
+        </strong>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-card__label">Income</span>
+        <strong class="summary-card__value--positive">
+          {{ (summary()?.incomeMinor ?? 0) / 100 | currency: "USD" }}
+        </strong>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-card__label">Expenses</span>
+        <strong class="summary-card__value--negative">
+          {{ (summary()?.expenseMinor ?? 0) / 100 | currency: "USD" }}
+        </strong>
+      </article>
+
+      <article class="summary-card">
+        <span class="summary-card__label">Transactions</span>
+        <strong>{{ summary()?.transactionCount ?? 0 }}</strong>
+      </article>
+    </section>
+
     <div class="dashboard__grid">
       <section class="card form-card">
         <div class="card__heading">
           <div>
-            <p class="eyebrow">New entry</p>
-            <h2>Add transaction</h2>
+            <p class="eyebrow">
+              {{ editingTransactionId() ? "Edit entry" : "New entry" }}
+            </p>
+            <h2>
+              {{
+                editingTransactionId()
+                  ? "Update transaction"
+                  : "Add transaction"
+              }}
+            </h2>
           </div>
-          <span class="card__icon" aria-hidden="true">+</span>
+
+          <span class="card__icon" aria-hidden="true">
+            {{ editingTransactionId() ? "✎" : "+" }}
+          </span>
         </div>
 
         <form [formGroup]="transactionForm" (ngSubmit)="submit()">
@@ -41,7 +87,9 @@
               transactionForm.controls.description.touched &&
               transactionForm.controls.description.invalid
             ) {
-              <p class="field__error">Enter a description up to 120 characters.</p>
+              <p class="field__error">
+                Enter a description up to 120 characters.
+              </p>
             }
           </div>
 
@@ -86,10 +134,38 @@
             />
           </div>
 
-          <button class="submit-button" type="submit" [disabled]="submitting()">
-            <span>{{ submitting() ? 'Saving transaction...' : 'Add transaction' }}</span>
-            <span aria-hidden="true">{{ submitting() ? '…' : '→' }}</span>
-          </button>
+          <div class="form-actions">
+            @if (editingTransactionId()) {
+              <button
+                class="secondary-button"
+                type="button"
+                [disabled]="submitting()"
+                (click)="cancelEdit()"
+              >
+                Cancel
+              </button>
+            }
+
+            <button
+              class="submit-button"
+              type="submit"
+              [disabled]="submitting()"
+            >
+              <span>
+                @if (submitting()) {
+                  {{ editingTransactionId() ? "Updating..." : "Saving..." }}
+                } @else {
+                  {{
+                    editingTransactionId()
+                      ? "Update transaction"
+                      : "Add transaction"
+                  }}
+                }
+              </span>
+
+              <span aria-hidden="true">{{ submitting() ? "…" : "→" }}</span>
+            </button>
+          </div>
         </form>
       </section>
 
@@ -123,13 +199,20 @@
         } @else {
           <ul class="transaction-list">
             @for (transaction of transactions(); track transaction.id) {
-              <li class="transaction-item">
+              <li
+                class="transaction-item"
+                [class.transaction-item--editing]="
+                  editingTransactionId() === transaction.id
+                "
+              >
                 <span
                   class="transaction-item__type"
-                  [class.transaction-item__type--income]="transaction.type === 'income'"
+                  [class.transaction-item__type--income]="
+                    transaction.type === 'income'
+                  "
                   aria-hidden="true"
                 >
-                  {{ transaction.type === 'income' ? '↙' : '↗' }}
+                  {{ transaction.type === "income" ? "↙" : "↗" }}
                 </span>
 
                 <div class="transaction-item__details">
@@ -141,12 +224,40 @@
 
                 <strong
                   class="transaction-item__amount"
-                  [class.transaction-item__amount--income]="transaction.type === 'income'"
+                  [class.transaction-item__amount--income]="
+                    transaction.type === 'income'
+                  "
                 >
-                  {{ transaction.type === 'income' ? '+' : '-' }}{{
-                    transaction.amountMinor / 100 | currency: 'USD'
+                  {{ transaction.type === "income" ? "+" : "-" }}{{
+                    transaction.amountMinor / 100 | currency: "USD"
                   }}
                 </strong>
+
+                <div class="transaction-item__actions">
+                  <button
+                    class="icon-button"
+                    type="button"
+                    aria-label="Edit transaction"
+                    [disabled]="submitting()"
+                    (click)="startEdit(transaction)"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    class="icon-button icon-button--danger"
+                    type="button"
+                    aria-label="Delete transaction"
+                    [disabled]="deletingTransactionId() === transaction.id"
+                    (click)="deleteTransaction(transaction.id)"
+                  >
+                    {{
+                      deletingTransactionId() === transaction.id
+                        ? "Deleting..."
+                        : "Delete"
+                    }}
+                  </button>
+                </div>
               </li>
             }
           </ul>

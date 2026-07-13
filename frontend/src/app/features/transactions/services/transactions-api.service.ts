@@ -5,6 +5,8 @@ import { Observable } from 'rxjs';
 import {
   CreateTransactionRequest,
   Transaction,
+  TransactionsSummary,
+  UpdateTransactionRequest,
 } from '../models/transactions';
 
 @Injectable({
@@ -18,9 +20,23 @@ export class TransactionsApiService {
     return this.http.get<Transaction[]>(this.apiUrl);
   }
 
-  create(
-    transaction: CreateTransactionRequest,
-  ): Observable<Transaction> {
+  findOne(id: string): Observable<Transaction> {
+    return this.http.get<Transaction>(`${this.apiUrl}/${id}`);
+  }
+
+  getSummary(): Observable<TransactionsSummary> {
+    return this.http.get<TransactionsSummary>(`${this.apiUrl}/summary`);
+  }
+
+  create(transaction: CreateTransactionRequest): Observable<Transaction> {
     return this.http.post<Transaction>(this.apiUrl, transaction);
+  }
+
+  update(id: string,transaction: UpdateTransactionRequest): Observable<Transaction> {
+    return this.http.patch<Transaction>(`${this.apiUrl}/${id}`, transaction);
+  }
+
+  remove(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 }
