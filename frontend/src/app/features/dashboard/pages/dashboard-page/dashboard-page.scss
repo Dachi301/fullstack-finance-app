@@ -78,6 +78,13 @@ h2 {
   gap: 10px;
   padding-top: 4px;
   white-space: nowrap;
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 160ms ease;
+}
+
+.brand-mark:hover {
+  opacity: 0.8;
 }
 
 .brand-mark span {
@@ -413,7 +420,7 @@ select.ng-invalid.ng-touched {
   gap: 10px;
   max-height: 475px;
   margin: 0;
-  padding: 0 5px 0 0;
+  padding: 4px;
   overflow-y: auto;
   list-style: none;
 }
@@ -429,6 +436,7 @@ select.ng-invalid.ng-touched {
   background: #fcfdfc;
   transition:
     border-color 160ms ease,
+    box-shadow 160ms ease,
     transform 160ms ease;
 }
 
@@ -439,7 +447,8 @@ select.ng-invalid.ng-touched {
 
 .transaction-item:hover {
   border-color: #c9d8ce;
-  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(45, 67, 53, 0.08);
+  transform: translateY(-2px);
 }
 
 .transaction-item__type {
@@ -604,3 +613,47 @@ select.ng-invalid.ng-touched {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Modal Styles */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(23, 33, 27, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.card__icon--danger {
+  background: #fff5f5;
+  color: #a43131;
+}
+
+.modal-text {
+  margin-bottom: 24px;
+  color: #68736c;
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.submit-button--danger {
+  background: #a43131;
+}
+
+.submit-button--danger:hover:not(:disabled) {
+  background: #8f2525;
+}
+

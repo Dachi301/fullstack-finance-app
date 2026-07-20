@@ -5,6 +5,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 
 import {
@@ -18,7 +19,7 @@ import { TransactionsApiService } from '../../../transactions/services/transacti
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [CurrencyPipe, ReactiveFormsModule],
+  imports: [CurrencyPipe, ReactiveFormsModule, RouterLink],
   templateUrl: './dashboard-page.html',
   styleUrl: './dashboard-page.scss',
 })
@@ -44,6 +45,18 @@ export class DashboardPage implements OnInit {
       Validators.required,
     ],
   });
+
+  readonly editTransactionForm = this.formBuilder.nonNullable.group({
+    description: ['', [Validators.required, Validators.maxLength(120)]],
+    amount: [0, [Validators.required, Validators.min(0.01)]],
+    type: ['expense' as TransactionType, Validators.required],
+    transactionDate: [
+      new Date().toISOString().slice(0, 10),
+      Validators.required,
+    ],
+  });
+
+  readonly transactionToDelete = signal<Transaction | null>(null);
 
   ngOnInit(): void {
     this.loadDashboard();
@@ -75,19 +88,23 @@ export class DashboardPage implements OnInit {
       return;
     }
 
-    if (this.editingTransactionId()) {
-      this.updateTransaction();
+    this.createTransaction();
+  }
+
+  submitEdit(): void {
+    if (this.editTransactionForm.invalid) {
+      this.editTransactionForm.markAllAsTouched();
       return;
     }
 
-    this.createTransaction();
+    this.updateTransaction();
   }
 
   startEdit(transaction: Transaction): void {
     this.editingTransactionId.set(transaction.id);
     this.errorMessage.set('');
 
-    this.transactionForm.setValue({
+    this.editTransactionForm.setValue({
       description: transaction.description,
       amount: transaction.amountMinor / 100,
       type: transaction.type,
@@ -97,22 +114,36 @@ export class DashboardPage implements OnInit {
 
   cancelEdit(): void {
     this.editingTransactionId.set(null);
-    this.resetForm();
+    this.editTransactionForm.reset();
   }
 
-  deleteTransaction(transactionId: string): void {
-    this.deletingTransactionId.set(transactionId);
+  requestDelete(transaction: Transaction): void {
+    this.transactionToDelete.set(transaction);
+  }
+
+  cancelDelete(): void {
+    this.transactionToDelete.set(null);
+  }
+
+  confirmDelete(): void {
+    const transaction = this.transactionToDelete();
+    if (!transaction) return;
+
+    this.deletingTransactionId.set(transaction.id);
     this.errorMessage.set('');
 
     this.transactionsApi
-      .remove(transactionId)
-      .pipe(finalize(() => this.deletingTransactionId.set(null)))
+      .remove(transaction.id)
+      .pipe(
+        finalize(() => {
+          this.deletingTransactionId.set(null);
+          this.transactionToDelete.set(null);
+        })
+      )
       .subscribe({
         next: () => {
           this.transactions.update((transactions) =>
-            transactions.filter(
-              (transaction) => transaction.id !== transactionId,
-            ),
+            transactions.filter((t) => t.id !== transaction.id),
           );
 
           this.loadSummary();
@@ -174,7 +205,7 @@ export class DashboardPage implements OnInit {
           );
 
           this.editingTransactionId.set(null);
-          this.resetForm();
+          this.editTransactionForm.reset();
           this.loadSummary();
         },
         error: () => {
@@ -206,7 +237,7 @@ export class DashboardPage implements OnInit {
   }
 
   private buildUpdateRequest(): UpdateTransactionRequest {
-    const formValue = this.transactionForm.getRawValue();
+    const formValue = this.editTransactionForm.getRawValue();
 
     return {
       description: formValue.description.trim(),

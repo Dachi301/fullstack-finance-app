@@ -10,10 +10,10 @@
         </p>
       </div>
 
-      <div class="brand-mark" aria-label="Ledgerly">
+      <a routerLink="/" class="brand-mark" aria-label="Ledgerly">
         <span aria-hidden="true">L</span>
         <strong>Ledgerly</strong>
-      </div>
+      </a>
     </header>
 
     <section class="summary-grid" aria-label="Transaction summary">
@@ -55,21 +55,11 @@
       <section class="card form-card">
         <div class="card__heading">
           <div>
-            <p class="eyebrow">
-              {{ editingTransactionId() ? "Edit entry" : "New entry" }}
-            </p>
-            <h2>
-              {{
-                editingTransactionId()
-                  ? "Update transaction"
-                  : "Add transaction"
-              }}
-            </h2>
+            <p class="eyebrow">New entry</p>
+            <h2>Add transaction</h2>
           </div>
 
-          <span class="card__icon" aria-hidden="true">
-            {{ editingTransactionId() ? "✎" : "+" }}
-          </span>
+          <span class="card__icon" aria-hidden="true">+</span>
         </div>
 
         <form [formGroup]="transactionForm" (ngSubmit)="submit()">
@@ -135,34 +125,12 @@
           </div>
 
           <div class="form-actions">
-            @if (editingTransactionId()) {
-              <button
-                class="secondary-button"
-                type="button"
-                [disabled]="submitting()"
-                (click)="cancelEdit()"
-              >
-                Cancel
-              </button>
-            }
-
             <button
               class="submit-button"
               type="submit"
               [disabled]="submitting()"
             >
-              <span>
-                @if (submitting()) {
-                  {{ editingTransactionId() ? "Updating..." : "Saving..." }}
-                } @else {
-                  {{
-                    editingTransactionId()
-                      ? "Update transaction"
-                      : "Add transaction"
-                  }}
-                }
-              </span>
-
+              <span>{{ submitting() ? "Saving..." : "Add transaction" }}</span>
               <span aria-hidden="true">{{ submitting() ? "…" : "→" }}</span>
             </button>
           </div>
@@ -249,7 +217,7 @@
                     type="button"
                     aria-label="Delete transaction"
                     [disabled]="deletingTransactionId() === transaction.id"
-                    (click)="deleteTransaction(transaction.id)"
+                    (click)="requestDelete(transaction)"
                   >
                     {{
                       deletingTransactionId() === transaction.id
@@ -266,3 +234,130 @@
     </div>
   </section>
 </main>
+
+@if (editingTransactionId()) {
+  <div class="modal-backdrop" (click)="cancelEdit()">
+    <div class="modal-card card form-card" (click)="$event.stopPropagation()">
+      <div class="card__heading">
+        <div>
+          <p class="eyebrow">Edit entry</p>
+          <h2>Update transaction</h2>
+        </div>
+        <span class="card__icon" aria-hidden="true">✎</span>
+      </div>
+
+      <form [formGroup]="editTransactionForm" (ngSubmit)="submitEdit()">
+        <div class="field field--full">
+          <label for="edit-description">Description</label>
+          <input
+            id="edit-description"
+            type="text"
+            formControlName="description"
+            placeholder="e.g. Groceries"
+            autocomplete="off"
+          />
+          @if (
+            editTransactionForm.controls.description.touched &&
+            editTransactionForm.controls.description.invalid
+          ) {
+            <p class="field__error">Enter a description up to 120 characters.</p>
+          }
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label for="edit-amount">Amount</label>
+            <div class="amount-input">
+              <span aria-hidden="true">$</span>
+              <input
+                id="edit-amount"
+                type="number"
+                formControlName="amount"
+                min="0.01"
+                step="0.01"
+                inputmode="decimal"
+              />
+            </div>
+            @if (
+              editTransactionForm.controls.amount.touched &&
+              editTransactionForm.controls.amount.invalid
+            ) {
+              <p class="field__error">Enter an amount greater than zero.</p>
+            }
+          </div>
+
+          <div class="field">
+            <label for="edit-type">Type</label>
+            <select id="edit-type" formControlName="type">
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field field--full">
+          <label for="edit-transactionDate">Date</label>
+          <input
+            id="edit-transactionDate"
+            type="date"
+            formControlName="transactionDate"
+          />
+        </div>
+
+        <div class="form-actions">
+          <button
+            class="secondary-button"
+            type="button"
+            [disabled]="submitting()"
+            (click)="cancelEdit()"
+          >
+            Cancel
+          </button>
+          <button
+            class="submit-button"
+            type="submit"
+            [disabled]="submitting()"
+          >
+            <span>{{ submitting() ? "Updating..." : "Update transaction" }}</span>
+            <span aria-hidden="true">{{ submitting() ? "…" : "→" }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (transactionToDelete()) {
+  <div class="modal-backdrop" (click)="cancelDelete()">
+    <div class="modal-card card form-card" (click)="$event.stopPropagation()">
+      <div class="card__heading">
+        <div>
+          <p class="eyebrow">Confirm Action</p>
+          <h2>Delete Transaction?</h2>
+        </div>
+        <span class="card__icon card__icon--danger" aria-hidden="true">!</span>
+      </div>
+      <p class="modal-text">
+        Are you sure you want to delete <strong>{{ transactionToDelete()?.description }}</strong>? This action cannot be undone.
+      </p>
+      <div class="form-actions">
+        <button
+          class="secondary-button"
+          type="button"
+          [disabled]="deletingTransactionId()"
+          (click)="cancelDelete()"
+        >
+          Cancel
+        </button>
+        <button
+          class="submit-button submit-button--danger"
+          type="button"
+          [disabled]="deletingTransactionId()"
+          (click)="confirmDelete()"
+        >
+          <span>{{ deletingTransactionId() ? "Deleting..." : "Yes, delete" }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+}
