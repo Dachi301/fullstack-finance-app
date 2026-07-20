@@ -23,6 +23,7 @@ import {
   selectTransactionsSubmitting,
   selectTransactionsSummary,
 } from '../../../../store/transactions/transactions.selectors';
+import { AuthService } from '../../../../core/auth/auth.service';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -33,6 +34,7 @@ import {
 export class DashboardPage implements OnInit {
   private readonly store = inject(Store);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
 
   readonly transactions = this.store.selectSignal(selectAllTransactions);
   readonly summary = this.store.selectSignal(selectTransactionsSummary);
@@ -127,6 +129,10 @@ export class DashboardPage implements OnInit {
 
     this.store.dispatch(TransactionActions.deleteTransaction({ id: transaction.id }));
     this.transactionToDelete.set(null);
+  }
+
+  logout(): void {
+    this.authService.logout();
   }
 
   private buildCreateRequest(): CreateTransactionRequest {

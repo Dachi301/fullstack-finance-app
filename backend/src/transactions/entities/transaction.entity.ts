@@ -2,9 +2,11 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
 
 export enum TransactionType {
   Income = 'income',
@@ -27,6 +29,12 @@ export class Transaction {
 
   @Column({ type: 'date' })
   transactionDate!: string;
+
+  @ManyToOne(() => User, (user) => user.transactions, { onDelete: 'CASCADE' })
+  user!: User;
+
+  @Column()
+  userId!: string;
 
   @CreateDateColumn()
   createdAt!: Date;

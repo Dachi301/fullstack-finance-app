@@ -10,10 +10,13 @@
         </p>
       </div>
 
-      <a routerLink="/" class="brand-mark" aria-label="Ledgerly">
-        <span aria-hidden="true">L</span>
-        <strong>Ledgerly</strong>
-      </a>
+      <div class="dashboard__header-actions" style="display: flex; flex-direction: column; align-items: flex-end; gap: 16px;">
+        <a routerLink="/" class="brand-mark" aria-label="Ledgerly">
+          <span aria-hidden="true">L</span>
+          <strong>Ledgerly</strong>
+        </a>
+        <button type="button" class="icon-button" (click)="logout()">Log out</button>
+      </div>
     </header>
 
     <section class="summary-grid" aria-label="Transaction summary">
