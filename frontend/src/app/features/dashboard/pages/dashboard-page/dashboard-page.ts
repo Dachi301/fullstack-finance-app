@@ -5,43 +5,61 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { finalize } from 'rxjs';
+import { RouterLink } from '@angular/router';
+import { Store } from '@ngrx/store';
 
 import {
   CreateTransactionRequest,
   Transaction,
   TransactionType,
+  UpdateTransactionRequest,
 } from '../../../transactions/models/transactions';
-import { TransactionsApiService } from '../../../transactions/services/transactions-api.service';
+import { TransactionActions } from '../../../../store/transactions/transactions.actions';
+import {
+  selectAllTransactions,
+  selectDeletingTransactionId,
+  selectTransactionsError,
+  selectTransactionsLoading,
+  selectTransactionsSubmitting,
+  selectTransactionsSummary,
+} from '../../../../store/transactions/transactions.selectors';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [CurrencyPipe, ReactiveFormsModule],
+  imports: [CurrencyPipe, ReactiveFormsModule, RouterLink],
   templateUrl: './dashboard-page.html',
   styleUrl: './dashboard-page.scss',
 })
 export class DashboardPage implements OnInit {
-  private readonly transactionsApi = inject(TransactionsApiService);
+  private readonly store = inject(Store);
   private readonly formBuilder = inject(FormBuilder);
 
-  readonly transactions = signal<Transaction[]>([]);
-  readonly loading = signal(true);
-  readonly submitting = signal(false);
-  readonly errorMessage = signal('');
+  readonly transactions = this.store.selectSignal(selectAllTransactions);
+  readonly summary = this.store.selectSignal(selectTransactionsSummary);
+
+  readonly loading = this.store.selectSignal(selectTransactionsLoading);
+  readonly submitting = this.store.selectSignal(selectTransactionsSubmitting);
+  readonly deletingTransactionId = this.store.selectSignal(selectDeletingTransactionId);
+  readonly errorMessage = this.store.selectSignal(selectTransactionsError);
+
+  // Local UI state
+  readonly editingTransactionId = signal<string | null>(null);
+  readonly transactionToDelete = signal<Transaction | null>(null);
 
   readonly transactionForm = this.formBuilder.nonNullable.group({
-    description: [
-      '',
-      [Validators.required, Validators.maxLength(120)],
-    ],
-    amount: [
-      0,
-      [Validators.required, Validators.min(0.01)],
-    ],
-    type: [
-      'expense' as TransactionType,
+    description: ['', [Validators.required, Validators.maxLength(120)]],
+    amount: [0, [Validators.required, Validators.min(0.01)]],
+    type: ['expense' as TransactionType, Validators.required],
+    transactionDate: [
+      new Date().toISOString().slice(0, 10),
       Validators.required,
     ],
+  });
+
+  readonly editTransactionForm = this.formBuilder.nonNullable.group({
+    description: ['', [Validators.required, Validators.maxLength(120)]],
+    amount: [0, [Validators.required, Validators.min(0.01)]],
+    type: ['expense' as TransactionType, Validators.required],
     transactionDate: [
       new Date().toISOString().slice(0, 10),
       Validators.required,
@@ -49,26 +67,7 @@ export class DashboardPage implements OnInit {
   });
 
   ngOnInit(): void {
-    this.loadTransactions();
-  }
-
-  loadTransactions(): void {
-    this.loading.set(true);
-    this.errorMessage.set('');
-
-    this.transactionsApi
-      .findAll()
-      .pipe(finalize(() => this.loading.set(false)))
-      .subscribe({
-        next: (transactions) => {
-          this.transactions.set(transactions);
-        },
-        error: () => {
-          this.errorMessage.set(
-            'Transactions could not be loaded.',
-          );
-        },
-      });
+    this.store.dispatch(TransactionActions.loadDashboard());
   }
 
   submit(): void {
@@ -77,42 +76,87 @@ export class DashboardPage implements OnInit {
       return;
     }
 
+    const request = this.buildCreateRequest();
+    this.store.dispatch(TransactionActions.createTransaction({ request }));
+    this.resetForm();
+  }
+
+  submitEdit(): void {
+    if (this.editTransactionForm.invalid) {
+      this.editTransactionForm.markAllAsTouched();
+      return;
+    }
+
+    const transactionId = this.editingTransactionId();
+    if (!transactionId) return;
+
+    const request = this.buildUpdateRequest();
+    this.store.dispatch(TransactionActions.updateTransaction({ id: transactionId, request }));
+    
+    this.editingTransactionId.set(null);
+    this.editTransactionForm.reset();
+  }
+
+  startEdit(transaction: Transaction): void {
+    this.editingTransactionId.set(transaction.id);
+
+    this.editTransactionForm.setValue({
+      description: transaction.description,
+      amount: transaction.amountMinor / 100,
+      type: transaction.type,
+      transactionDate: transaction.transactionDate,
+    });
+  }
+
+  cancelEdit(): void {
+    this.editingTransactionId.set(null);
+    this.editTransactionForm.reset();
+  }
+
+  requestDelete(transaction: Transaction): void {
+    this.transactionToDelete.set(transaction);
+  }
+
+  cancelDelete(): void {
+    this.transactionToDelete.set(null);
+  }
+
+  confirmDelete(): void {
+    const transaction = this.transactionToDelete();
+    if (!transaction) return;
+
+    this.store.dispatch(TransactionActions.deleteTransaction({ id: transaction.id }));
+    this.transactionToDelete.set(null);
+  }
+
+  private buildCreateRequest(): CreateTransactionRequest {
     const formValue = this.transactionForm.getRawValue();
 
-    const request: CreateTransactionRequest = {
+    return {
       description: formValue.description.trim(),
       amountMinor: Math.round(formValue.amount * 100),
       type: formValue.type,
       transactionDate: formValue.transactionDate,
     };
+  }
 
-    this.submitting.set(true);
-    this.errorMessage.set('');
+  private buildUpdateRequest(): UpdateTransactionRequest {
+    const formValue = this.editTransactionForm.getRawValue();
 
-    this.transactionsApi
-      .create(request)
-      .pipe(finalize(() => this.submitting.set(false)))
-      .subscribe({
-        next: (createdTransaction) => {
-          this.transactions.update((transactions) => [
-            createdTransaction,
-            ...transactions,
-          ]);
+    return {
+      description: formValue.description.trim(),
+      amountMinor: Math.round(formValue.amount * 100),
+      type: formValue.type,
+      transactionDate: formValue.transactionDate,
+    };
+  }
 
-          this.transactionForm.reset({
-            description: '',
-            amount: 0,
-            type: 'expense',
-            transactionDate: new Date()
-              .toISOString()
-              .slice(0, 10),
-          });
-        },
-        error: () => {
-          this.errorMessage.set(
-            'Transaction could not be created.',
-          );
-        },
-      });
+  private resetForm(): void {
+    this.transactionForm.reset({
+      description: '',
+      amount: 0,
+      type: 'expense',
+      transactionDate: new Date().toISOString().slice(0, 10),
+    });
   }
 }

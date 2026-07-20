@@ -1,11 +1,20 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { NgxLoadingBar } from '@ngx-loading-bar/core';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
-  templateUrl: './app.html',
-  styleUrl: './app.scss'
+  standalone: true,
+  imports: [RouterOutlet, NgxLoadingBar],
+  template: `
+    <ngx-loading-bar
+      color="#357C50"
+      height="3px"
+      [includeSpinner]="false"
+    />
+
+    <router-outlet />
+  `,
 })
 export class App {
   
