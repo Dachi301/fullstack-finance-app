@@ -1,0 +1,83 @@
+<main class="auth-shell">
+  <div class="auth-card card">
+    <div class="brand-mark" aria-label="Ledgerly">
+      <span aria-hidden="true">L</span>
+      <strong>Ledgerly</strong>
+    </div>
+
+    <h1>{{ isLoginMode() ? 'Welcome back' : 'Create an account' }}</h1>
+    <p class="auth-subtitle">
+      {{ isLoginMode() ? 'Enter your details to access your dashboard.' : 'Sign up to start tracking your finances.' }}
+    </p>
+
+    @if (errorMessage()) {
+      <div class="request-state request-state--error" role="alert">
+        <span aria-hidden="true">!</span>
+        <p>{{ errorMessage() }}</p>
+      </div>
+    }
+
+    <form [formGroup]="authForm" (ngSubmit)="submit()">
+      <div class="field">
+        <label for="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          placeholder="you@example.com"
+          autocomplete="email"
+        />
+        @if (authForm.controls.email.touched && authForm.controls.email.invalid) {
+          <p class="field__error">Please enter a valid email.</p>
+        }
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          placeholder="Min. 6 characters"
+          autocomplete="current-password"
+        />
+        @if (authForm.controls.password.touched && authForm.controls.password.invalid) {
+          <p class="field__error">Password must be at least 6 characters.</p>
+        }
+      </div>
+
+      @if (isLoginMode()) {
+        <div class="field-checkbox">
+          <label>
+            <input type="checkbox" formControlName="remember" />
+            Remember me
+          </label>
+        </div>
+      }
+
+      <button
+        class="submit-button"
+        type="submit"
+        [disabled]="submitting()"
+      >
+        <span>
+          @if (submitting()) {
+            Please wait...
+          } @else {
+            {{ isLoginMode() ? 'Log in' : 'Sign up' }}
+          }
+        </span>
+        <span aria-hidden="true">{{ submitting() ? '…' : '→' }}</span>
+      </button>
+    </form>
+
+    <div class="auth-switch">
+      <p>
+        {{ isLoginMode() ? "Don't have an account?" : "Already have an account?" }}
+        <button type="button" class="text-button" (click)="toggleMode()">
+          {{ isLoginMode() ? 'Sign up' : 'Log in' }}
+        </button>
+      </p>
+    </div>
+  </div>
+</main>

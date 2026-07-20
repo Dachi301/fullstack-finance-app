@@ -19,8 +19,9 @@ export class TransactionsService {
     private readonly transactionsRepository: Repository<Transaction>,
   ) {}
 
-  findAll(): Promise<Transaction[]> {
+  findAll(userId: string): Promise<Transaction[]> {
     return this.transactionsRepository.find({
+      where: { userId },
       order: {
         transactionDate: 'DESC',
         createdAt: 'DESC',
@@ -28,15 +29,17 @@ export class TransactionsService {
     });
   }
 
-  create(createTransactionDto: CreateTransactionDto): Promise<Transaction> {
-    const transaction =
-      this.transactionsRepository.create(createTransactionDto);
+  create(userId: string, createTransactionDto: CreateTransactionDto): Promise<Transaction> {
+    const transaction = this.transactionsRepository.create({
+      ...createTransactionDto,
+      userId,
+    });
 
     return this.transactionsRepository.save(transaction);
   }
 
-  async findOne(id: string): Promise<Transaction> {
-    const transaction = await this.transactionsRepository.findOneBy({ id });
+  async findOne(id: string, userId: string): Promise<Transaction> {
+    const transaction = await this.transactionsRepository.findOneBy({ id, userId });
 
     if (!transaction) {
       throw new NotFoundException(`Transaction with id "${id}" was not found.`);
@@ -47,27 +50,28 @@ export class TransactionsService {
 
   async update(
     id: string,
+    userId: string,
     updateTransactionDto: UpdateTransactionDto,
   ): Promise<Transaction> {
-    const transaction = await this.findOne(id);
+    const transaction = await this.findOne(id, userId);
 
     Object.assign(transaction, updateTransactionDto);
 
     await this.transactionsRepository.save(transaction);
 
-    return this.findOne(id);
+    return this.findOne(id, userId);
   }
 
-  async remove(id: string): Promise<void> {
-    const result = await this.transactionsRepository.delete(id);
+  async remove(id: string, userId: string): Promise<void> {
+    const result = await this.transactionsRepository.delete({ id, userId });
 
     if (!result.affected) {
       throw new NotFoundException(`Transaction with id "${id}" was not found.`);
     }
   }
 
-  async getSummary(): Promise<TransactionsSummary> {
-    const transactions = await this.transactionsRepository.find();
+  async getSummary(userId: string): Promise<TransactionsSummary> {
+    const transactions = await this.findAll(userId);
 
     return transactions.reduce<TransactionsSummary>(
       (summary, transaction) => {
