@@ -21,6 +21,7 @@ export class LoginPage {
   readonly authForm = this.formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
+    remember: [false],
   });
 
   toggleMode(): void {
@@ -41,7 +42,7 @@ export class LoginPage {
     const credentials = this.authForm.getRawValue();
     const request$ = this.isLoginMode()
       ? this.authService.login(credentials)
-      : this.authService.register(credentials);
+      : this.authService.register({ email: credentials.email, password: credentials.password });
 
     request$.subscribe({
       next: () => {

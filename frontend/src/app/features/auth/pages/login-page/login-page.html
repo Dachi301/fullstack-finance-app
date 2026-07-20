@@ -46,6 +46,15 @@
         }
       </div>
 
+      @if (isLoginMode()) {
+        <div class="field-checkbox">
+          <label>
+            <input type="checkbox" formControlName="remember" />
+            Remember me
+          </label>
+        </div>
+      }
+
       <button
         class="submit-button"
         type="submit"

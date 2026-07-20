@@ -13,48 +13,74 @@ export class AuthService {
   private readonly router = inject(Router);
   private readonly apiUrl = 'http://localhost:3000/auth';
 
-  // In a real app, you might parse the JWT to get user info. 
-  // For simplicity, we just store the token presence as boolean.
   readonly isAuthenticated = signal<boolean>(this.hasToken());
 
-  login(credentials: { email: string; password: string }) {
+  login(credentials: { email: string; password: string; remember?: boolean }) {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
-      tap((response) => this.handleAuthSuccess(response))
+      tap((response) => {
+        this.setTokenCookie(response.accessToken, !!credentials.remember);
+        this.isAuthenticated.set(true);
+      })
     );
   }
 
   register(credentials: { email: string; password: string }) {
     return this.http.post<AuthResponse>(`${this.apiUrl}/register`, credentials).pipe(
-      tap((response) => this.handleAuthSuccess(response))
+      tap((response) => {
+        this.setTokenCookie(response.accessToken, false);
+        this.isAuthenticated.set(true);
+      })
     );
   }
 
   logout() {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem('access_token');
-    }
+    this.removeTokenCookie();
     this.isAuthenticated.set(false);
     this.router.navigate(['/login']);
   }
 
   getToken(): string | null {
-    if (typeof localStorage !== 'undefined') {
-      return localStorage.getItem('access_token');
+    return this.getTokenCookie();
+  }
+
+  private hasToken(): boolean {
+    return !!this.getTokenCookie();
+  }
+
+  private setTokenCookie(token: string, remember: boolean) {
+    if (typeof document === 'undefined') return;
+    
+    let expires = '';
+    if (remember) {
+      const date = new Date();
+      // 30 days expiration
+      date.setTime(date.getTime() + (30 * 24 * 60 * 60 * 1000));
+      expires = `; expires=${date.toUTCString()}`;
+    }
+    
+    document.cookie = `access_token=${token}${expires}; path=/; SameSite=Strict`;
+  }
+
+  private getTokenCookie(): string | null {
+    if (typeof document === 'undefined') return null;
+    
+    const name = 'access_token=';
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const ca = decodedCookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') {
+        c = c.substring(1);
+      }
+      if (c.indexOf(name) === 0) {
+        return c.substring(name.length, c.length);
+      }
     }
     return null;
   }
 
-  private hasToken(): boolean {
-    if (typeof localStorage !== 'undefined') {
-      return !!localStorage.getItem('access_token');
-    }
-    return false;
-  }
-
-  private handleAuthSuccess(response: AuthResponse) {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('access_token', response.accessToken);
-    }
-    this.isAuthenticated.set(true);
+  private removeTokenCookie() {
+    if (typeof document === 'undefined') return;
+    document.cookie = 'access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
   }
 }
