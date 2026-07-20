@@ -16,7 +16,7 @@ A simple personal finance tracker to record your income and expenses. Keep all y
 ## Getting Started
 
 ### Prerequisites
-- Node.js
+- Nest.js
 - Database (PostgreSQL/MySQL etc. configured via Prisma)
 
 ### Installation
