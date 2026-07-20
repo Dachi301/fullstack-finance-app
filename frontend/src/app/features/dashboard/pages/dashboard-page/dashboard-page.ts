@@ -6,16 +6,23 @@ import {
   Validators,
 } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { finalize, forkJoin } from 'rxjs';
+import { Store } from '@ngrx/store';
 
 import {
   CreateTransactionRequest,
   Transaction,
-  TransactionsSummary,
   TransactionType,
   UpdateTransactionRequest,
 } from '../../../transactions/models/transactions';
-import { TransactionsApiService } from '../../../transactions/services/transactions-api.service';
+import { TransactionActions } from '../../../../store/transactions/transactions.actions';
+import {
+  selectAllTransactions,
+  selectDeletingTransactionId,
+  selectTransactionsError,
+  selectTransactionsLoading,
+  selectTransactionsSubmitting,
+  selectTransactionsSummary,
+} from '../../../../store/transactions/transactions.selectors';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -24,17 +31,20 @@ import { TransactionsApiService } from '../../../transactions/services/transacti
   styleUrl: './dashboard-page.scss',
 })
 export class DashboardPage implements OnInit {
-  private readonly transactionsApi = inject(TransactionsApiService);
+  private readonly store = inject(Store);
   private readonly formBuilder = inject(FormBuilder);
 
-  readonly transactions = signal<Transaction[]>([]);
-  readonly summary = signal<TransactionsSummary | null>(null);
+  readonly transactions = this.store.selectSignal(selectAllTransactions);
+  readonly summary = this.store.selectSignal(selectTransactionsSummary);
 
-  readonly loading = signal(true);
-  readonly submitting = signal(false);
-  readonly deletingTransactionId = signal<string | null>(null);
+  readonly loading = this.store.selectSignal(selectTransactionsLoading);
+  readonly submitting = this.store.selectSignal(selectTransactionsSubmitting);
+  readonly deletingTransactionId = this.store.selectSignal(selectDeletingTransactionId);
+  readonly errorMessage = this.store.selectSignal(selectTransactionsError);
+
+  // Local UI state
   readonly editingTransactionId = signal<string | null>(null);
-  readonly errorMessage = signal('');
+  readonly transactionToDelete = signal<Transaction | null>(null);
 
   readonly transactionForm = this.formBuilder.nonNullable.group({
     description: ['', [Validators.required, Validators.maxLength(120)]],
@@ -56,30 +66,8 @@ export class DashboardPage implements OnInit {
     ],
   });
 
-  readonly transactionToDelete = signal<Transaction | null>(null);
-
   ngOnInit(): void {
-    this.loadDashboard();
-  }
-
-  loadDashboard(): void {
-    this.loading.set(true);
-    this.errorMessage.set('');
-
-    forkJoin({
-      transactions: this.transactionsApi.findAll(),
-      summary: this.transactionsApi.getSummary(),
-    })
-      .pipe(finalize(() => this.loading.set(false)))
-      .subscribe({
-        next: ({ transactions, summary }) => {
-          this.transactions.set(transactions);
-          this.summary.set(summary);
-        },
-        error: () => {
-          this.errorMessage.set('Dashboard data could not be loaded.');
-        },
-      });
+    this.store.dispatch(TransactionActions.loadDashboard());
   }
 
   submit(): void {
@@ -88,7 +76,9 @@ export class DashboardPage implements OnInit {
       return;
     }
 
-    this.createTransaction();
+    const request = this.buildCreateRequest();
+    this.store.dispatch(TransactionActions.createTransaction({ request }));
+    this.resetForm();
   }
 
   submitEdit(): void {
@@ -97,12 +87,18 @@ export class DashboardPage implements OnInit {
       return;
     }
 
-    this.updateTransaction();
+    const transactionId = this.editingTransactionId();
+    if (!transactionId) return;
+
+    const request = this.buildUpdateRequest();
+    this.store.dispatch(TransactionActions.updateTransaction({ id: transactionId, request }));
+    
+    this.editingTransactionId.set(null);
+    this.editTransactionForm.reset();
   }
 
   startEdit(transaction: Transaction): void {
     this.editingTransactionId.set(transaction.id);
-    this.errorMessage.set('');
 
     this.editTransactionForm.setValue({
       description: transaction.description,
@@ -129,100 +125,8 @@ export class DashboardPage implements OnInit {
     const transaction = this.transactionToDelete();
     if (!transaction) return;
 
-    this.deletingTransactionId.set(transaction.id);
-    this.errorMessage.set('');
-
-    this.transactionsApi
-      .remove(transaction.id)
-      .pipe(
-        finalize(() => {
-          this.deletingTransactionId.set(null);
-          this.transactionToDelete.set(null);
-        })
-      )
-      .subscribe({
-        next: () => {
-          this.transactions.update((transactions) =>
-            transactions.filter((t) => t.id !== transaction.id),
-          );
-
-          this.loadSummary();
-        },
-        error: () => {
-          this.errorMessage.set('Transaction could not be deleted.');
-        },
-      });
-  }
-
-  private createTransaction(): void {
-    const request = this.buildCreateRequest();
-
-    this.submitting.set(true);
-    this.errorMessage.set('');
-
-    this.transactionsApi
-      .create(request)
-      .pipe(finalize(() => this.submitting.set(false)))
-      .subscribe({
-        next: (createdTransaction) => {
-          this.transactions.update((transactions) => [
-            createdTransaction,
-            ...transactions,
-          ]);
-
-          this.resetForm();
-          this.loadSummary();
-        },
-        error: () => {
-          this.errorMessage.set('Transaction could not be created.');
-        },
-      });
-  }
-
-  private updateTransaction(): void {
-    const transactionId = this.editingTransactionId();
-
-    if (!transactionId) {
-      return;
-    }
-
-    const request = this.buildUpdateRequest();
-
-    this.submitting.set(true);
-    this.errorMessage.set('');
-
-    this.transactionsApi
-      .update(transactionId, request)
-      .pipe(finalize(() => this.submitting.set(false)))
-      .subscribe({
-        next: (updatedTransaction) => {
-          this.transactions.update((transactions) =>
-            transactions.map((transaction) =>
-              transaction.id === updatedTransaction.id
-                ? updatedTransaction
-                : transaction,
-            ),
-          );
-
-          this.editingTransactionId.set(null);
-          this.editTransactionForm.reset();
-          this.loadSummary();
-        },
-        error: () => {
-          this.errorMessage.set('Transaction could not be updated.');
-        },
-      });
-  }
-
-  private loadSummary(): void {
-    this.transactionsApi.getSummary().subscribe({
-      next: (summary) => {
-        this.summary.set(summary);
-      },
-      error: () => {
-        this.errorMessage.set('Summary could not be refreshed.');
-      },
-    });
+    this.store.dispatch(TransactionActions.deleteTransaction({ id: transaction.id }));
+    this.transactionToDelete.set(null);
   }
 
   private buildCreateRequest(): CreateTransactionRequest {
