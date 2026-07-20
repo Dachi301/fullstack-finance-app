@@ -27,6 +27,9 @@ A simple personal finance tracker to record your income and expenses. Keep all y
    ```
 2. Set up the database and run Prisma migrations in the `backend`.
 3. Start the backend development server.
+   ```bash
+   cd backend && npm run start:dev
+   ```
 4. Start the frontend Angular development server:
    ```bash
    cd frontend && npm start
