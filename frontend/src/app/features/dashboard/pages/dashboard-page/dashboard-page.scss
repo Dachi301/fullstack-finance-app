@@ -509,6 +509,10 @@ select.ng-invalid.ng-touched {
 }
 
 .icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   min-height: 34px;
   padding: 0 12px;
   border: 1px solid #d9dfda;
